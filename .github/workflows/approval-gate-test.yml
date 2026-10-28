@@ -1,0 +1,36 @@
+name: Validate report approval gate (no execution)
+on:
+  push:
+    paths:
+      - 'evaluate_report.py'
+      - 'research_approval_gate.py'
+      - '.github/workflows/approval-gate-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gate-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Check real report adapter and fail-closed rules
+        run: |
+          python - <<'PY'
+          import json
+          from research_approval_gate import review
+          from evaluate_report import evaluate
+          sample={"final_rating":"Buy", "news_report":"News completed",
+                  "market_report":"Market completed", "risk_debate_state":{"history":"risk debate"}}
+          a=evaluate(sample,"BUY")
+          assert a["approval"]["approved"] is False and a["execution_enabled"] is False, a
+          assert a["evidence"]["news_checked"] and a["evidence"]["history_checked"]
+          assert a["evidence"]["risk_ok"] is False
+          assert evaluate({"final_rating":"REVIEW"},"BUY")["approval"]["approved"] is False
+          assert evaluate({"final_rating":"Buy"},"SELL")["approval"]["approved"] is False
+          assert review({"technical_signal":"BUY","ai_signal":"BUY","news_checked":True,
+                 "history_checked":True,"risk_ok":True})["approved"] is True
+          print("PASS: report adapter and five fail-closed approval cases")
+          PY
