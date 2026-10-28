@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      TRADINGAGENTS_LLM_PROVIDER: openai
-      TRADINGAGENTS_QUICK_THINK_LLM: gpt-4o-mini
-      TRADINGAGENTS_DEEP_THINK_LLM: gpt-4o-mini
+      GOOGLE_API_KEY: ${{ secrets.openkeygemini }}
+      TRADINGAGENTS_LLM_PROVIDER: google
+      TRADINGAGENTS_QUICK_THINK_LLM: gemini-2.5-flash
+      TRADINGAGENTS_DEEP_THINK_LLM: gemini-2.5-flash
       TRADINGAGENTS_MAX_DEBATE_ROUNDS: '1'
       TRADINGAGENTS_MAX_RISK_ROUNDS: '1'
       TRADINGAGENTS_OUTPUT_LANGUAGE: English
@@ -23,11 +23,11 @@ jobs:
       - name: Check model credentials
         id: creds
         run: |
-          if [ -n "$OPENAI_API_KEY" ]; then
+          if [ -n "$GOOGLE_API_KEY" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "No OPENAI_API_KEY repository secret. AI inference was not run." >> "$GITHUB_STEP_SUMMARY"
+            echo "No GOOGLE_API_KEY repository secret. AI inference was not run." >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Checkout original TradingAgents
         if: steps.creds.outputs.available == 'true'
@@ -63,3 +63,5 @@ jobs:
           retention-days: 7
 
 # Rerun after API credential configured — 2026-10-28
+
+# Gemini secret configured, read-only test
