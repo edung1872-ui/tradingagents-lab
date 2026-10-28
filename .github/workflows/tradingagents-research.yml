@@ -61,3 +61,5 @@ jobs:
             upstream/tradingagents_data/
           if-no-files-found: warn
           retention-days: 7
+
+# Rerun after API credential configured — 2026-10-28
