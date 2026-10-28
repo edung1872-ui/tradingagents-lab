@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     env:
-      GOOGLE_API_KEY: ${{ secrets.openkeygemini }}
+      GOOGLE_API_KEY: ${{ secrets.OPENAI_API_KEY_GEMINI }}
       TRADINGAGENTS_LLM_PROVIDER: google
       TRADINGAGENTS_QUICK_THINK_LLM: gemini-2.5-flash
       TRADINGAGENTS_DEEP_THINK_LLM: gemini-2.5-flash
