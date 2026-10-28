@@ -1,0 +1,57 @@
+name: Automatic AI report approval test
+on:
+  workflow_run:
+    workflows: ["TradingAgents AI research (read only)"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Download prior research report
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: tradingagents-research
+          path: downloaded-report
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Check actual report and veto execution
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+        run: |
+          python - <<'PY'
+          import glob, json
+          from evaluate_report import evaluate
+          paths = glob.glob("downloaded-report/**/full_states_log_*.json", recursive=True)
+          if not paths:
+              raise SystemExit("No actual full-state research report found; fail closed")
+          for path in paths:
+              with open(path, encoding="utf-8") as f:
+                  state = json.load(f)
+              for technical in ("BUY", "SELL", "HOLD"):
+                  verdict = evaluate(state, technical)
+                  assert verdict["execution_enabled"] is False
+                  assert verdict["approval"]["approved"] is False
+                  print(f"{path}: technical={technical}, AI={verdict['report_rating']}, result={verdict['approval']['decision']}")
+          PY
+      - name: Report upstream failure safely
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+        run: |
+          echo "TradingAgents research did not succeed; no approval and no trading." >> "$GITHUB_STEP_SUMMARY"
+      - name: Manual synthetic adapter check
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          python - <<'PY'
+          from evaluate_report import evaluate
+          x=evaluate({"final_rating":"Buy","news_report":"Completed","market_report":"Completed"},"BUY")
+          assert x["approval"]["approved"] is False
+          assert x["execution_enabled"] is False
+          print("PASS: no order permitted even with matching synthetic signals")
+          PY
